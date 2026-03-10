@@ -3,93 +3,68 @@
 
 """
 SkyTrack Pro - Главный файл приложения
-Версия: 2.0
-Совместимость: Python 3.11
+Профессиональный трекер самолётов с Google Maps
 """
 
 import os
 import sys
-import logging
-from datetime import datetime
-from pathlib import Path
+from datetime import datetime, timedelta
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Flask и расширения
+# Импорты Flask и расширений
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from flask_login import LoginManager, login_required, current_user
 from flask_cors import CORS
 from flask_mail import Mail
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения
-env_path = Path('.') / '.env'
-if env_path.exists():
+# Загружаем переменные окружения из .env (только для локальной разработки)
+if os.path.exists('.env'):
     load_dotenv()
-    logger.info("✅ .env файл загружен")
+    print("✅ Загружен .env файл")
 else:
-    logger.warning("⚠️ .env файл не найден, используются системные переменные")
+    print("ℹ️ .env файл не найден, используем переменные окружения системы")
 
 # Импорт конфигурации
-try:
-    from config import Config
-    logger.info("✅ Конфигурация загружена")
-except ImportError as e:
-    logger.error(f"❌ Ошибка импорта config: {e}")
-    sys.exit(1)
+from config import Config
 
-# Импорт моделей и модулей
-try:
-    from models import db, User
-    from auth import auth_bp
-    from email_service import mail
-    from opensky_client import OpenSkyClient
-    logger.info("✅ Все модули импортированы")
-except ImportError as e:
-    logger.error(f"❌ Ошибка импорта модулей: {e}")
-    sys.exit(1)
+# Проверка версий критических пакетов
+import werkzeug
+import flask_login
+print(f"✅ Werkzeug версия: {werkzeug.__version__}")
+print(f"✅ Flask-Login версия: {flask_login.__version__}")
 
-# Создание приложения Flask
+# Импорт моделей и модулей приложения
+from models import db, User
+from auth import auth_bp
+from email_service import mail, init_mail
+from opensky_client import OpenSkyClient
+
+# Создание экземпляра приложения Flask
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Проверка секретного ключа
-if not app.config.get('SECRET_KEY'):
-    logger.error("❌ SECRET_KEY не установлен!")
-    sys.exit(1)
+# Проверка конфигурации
+if not Config.validate_config():
+    print("⚠️  Внимание: Не все переменные окружения установлены!")
+    print("⚠️  Приложение может работать некорректно")
 
 # Инициализация расширений
-try:
-    CORS(app, supports_credentials=True)
-    db.init_app(app)
-    mail.init_app(app)
-    logger.info("✅ Расширения инициализированы")
-except Exception as e:
-    logger.error(f"❌ Ошибка инициализации расширений: {e}")
-    sys.exit(1)
+CORS(app, supports_credentials=True)  # Включаем CORS для всех маршрутов
+db.init_app(app)  # Инициализация SQLAlchemy
+mail.init_app(app)  # Инициализация Flask-Mail
 
 # Инициализация Login Manager
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'auth.login'
+login_manager.login_view = 'auth.login'  # Перенаправление на страницу входа
 login_manager.login_message = 'Пожалуйста, войдите для доступа к этой странице'
 login_manager.login_message_category = 'info'
 
 # Инициализация клиента OpenSky
-try:
-    opensky = OpenSkyClient(
-        app.config.get('OPENSKY_CLIENT_ID'),
-        app.config.get('OPENSKY_CLIENT_SECRET')
-    )
-    logger.info("✅ OpenSky клиент инициализирован")
-except Exception as e:
-    logger.error(f"❌ Ошибка инициализации OpenSky клиента: {e}")
-    opensky = None
+opensky = OpenSkyClient(
+    Config.OPENSKY_CLIENT_ID,
+    Config.OPENSKY_CLIENT_SECRET
+)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -97,44 +72,34 @@ def load_user(user_id):
     try:
         return db.session.get(User, int(user_id))
     except Exception as e:
-        logger.error(f"❌ Ошибка загрузки пользователя {user_id}: {e}")
+        print(f"❌ Ошибка загрузки пользователя: {e}")
         return None
 
-# Регистрация blueprint
+# Регистрация blueprint для аутентификации
 app.register_blueprint(auth_bp, url_prefix='/auth')
-logger.info("✅ Blueprint зарегистрирован")
 
 # Создание таблиц в базе данных
 with app.app_context():
     try:
         db.create_all()
-        logger.info("✅ Таблицы в базе данных созданы/проверены")
-        
-        # Проверка подключения к БД
-        db.session.execute('SELECT 1')
-        logger.info("✅ Подключение к базе данных работает")
+        print("✅ Таблицы в базе данных созданы/проверены")
     except Exception as e:
-        logger.error(f"❌ Ошибка базы данных: {e}")
+        print(f"❌ Ошибка создания таблиц: {e}")
+        print("⚠️ Проверьте подключение к базе данных")
 
 @app.route('/')
 @login_required
 def index():
-    """Главная страница с картой"""
-    try:
-        return render_template('index.html', 
-                             username=current_user.username,
-                             update_interval=app.config.get('FLIGHT_UPDATE_INTERVAL', 5))
-    except Exception as e:
-        logger.error(f"❌ Ошибка загрузки главной страницы: {e}")
-        return "Ошибка сервера", 500
+    """Главная страница с Google Maps"""
+    return render_template('index.html', 
+                         username=current_user.username,
+                         google_maps_api_key=Config.GOOGLE_MAPS_API_KEY,
+                         update_interval=Config.FLIGHT_UPDATE_INTERVAL)
 
 @app.route('/api/flights')
 @login_required
 def get_flights():
-    """API endpoint для получения всех рейсов"""
-    if not opensky:
-        return jsonify({'success': False, 'error': 'OpenSky клиент не инициализирован'}), 500
-    
+    """API endpoint для получения всех рейсов в реальном времени"""
     try:
         data = opensky.get_all_flights()
         
@@ -148,31 +113,15 @@ def get_flights():
             else:
                 return jsonify({'success': False, 'error': data['error']}), 500
         
-        # Подсчёт статистики
-        flights = data.get('flights', [])
-        in_air = sum(1 for f in flights if not f.get('on_ground', True))
-        on_ground = len(flights) - in_air
-        
-        return jsonify({
-            'success': True,
-            'flights': flights,
-            'total': len(flights),
-            'in_air': in_air,
-            'on_ground': on_ground,
-            'timestamp': data.get('time', int(datetime.utcnow().timestamp()))
-        })
-        
+        return jsonify(data)
     except Exception as e:
-        logger.error(f"❌ Ошибка получения рейсов: {e}")
+        print(f"❌ Ошибка получения рейсов: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/flight/<icao24>')
 @login_required
-def get_flight_details(icao24):
-    """API endpoint для деталей конкретного рейса"""
-    if not opensky:
-        return jsonify({'success': False, 'error': 'OpenSky клиент не инициализирован'}), 500
-    
+def get_flight(icao24):
+    """API endpoint для детальной информации о конкретном рейсе"""
     try:
         details = opensky.get_flight_details(icao24)
         track = opensky.get_track(icao24)
@@ -183,7 +132,7 @@ def get_flight_details(icao24):
             'track': track
         })
     except Exception as e:
-        logger.error(f"❌ Ошибка получения деталей рейса {icao24}: {e}")
+        print(f"❌ Ошибка получения деталей рейса: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/user/preferences', methods=['GET', 'POST'])
@@ -198,15 +147,14 @@ def user_preferences():
                 'map_style': current_user.map_style,
                 'username': current_user.username,
                 'email': current_user.email,
-                'verified': current_user.is_verified,
-                'created_at': current_user.created_at.isoformat() if current_user.created_at else None,
-                'last_login': current_user.last_login.isoformat() if current_user.last_login else None
+                'verified': current_user.is_verified
             })
         
+        # POST запрос - обновление настроек
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'Нет данных'}), 400
-        
+            
         if 'show_trails' in data:
             current_user.show_trails = bool(data['show_trails'])
         if 'map_style' in data:
@@ -214,19 +162,79 @@ def user_preferences():
         
         db.session.commit()
         return jsonify({'success': True})
-        
     except Exception as e:
         db.session.rollback()
-        logger.error(f"❌ Ошибка обновления настроек: {e}")
+        print(f"❌ Ошибка обновления настроек: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/favorites', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def favorites():
+    """Избранные самолёты пользователя"""
+    try:
+        if request.method == 'GET':
+            from models import FavoriteAircraft
+            favs = FavoriteAircraft.query.filter_by(user_id=current_user.id).all()
+            return jsonify({
+                'success': True,
+                'favorites': [{
+                    'icao24': f.icao24,
+                    'callsign': f.callsign,
+                    'notes': f.notes,
+                    'created_at': f.created_at.isoformat() if f.created_at else None
+                } for f in favs]
+            })
+        
+        elif request.method == 'POST':
+            from models import FavoriteAircraft
+            data = request.get_json()
+            if not data or 'icao24' not in data:
+                return jsonify({'success': False, 'error': 'Не указан ICAO код'}), 400
+            
+            # Проверяем, нет ли уже в избранном
+            existing = FavoriteAircraft.query.filter_by(
+                user_id=current_user.id,
+                icao24=data['icao24']
+            ).first()
+            
+            if not existing:
+                fav = FavoriteAircraft(
+                    user_id=current_user.id,
+                    icao24=data['icao24'],
+                    callsign=data.get('callsign', ''),
+                    notes=data.get('notes', '')
+                )
+                db.session.add(fav)
+                db.session.commit()
+                return jsonify({'success': True, 'message': 'Добавлено в избранное'})
+            else:
+                return jsonify({'success': False, 'error': 'Уже в избранном'}), 400
+        
+        elif request.method == 'DELETE':
+            from models import FavoriteAircraft
+            data = request.get_json()
+            if not data or 'icao24' not in data:
+                return jsonify({'success': False, 'error': 'Не указан ICAO код'}), 400
+                
+            deleted = FavoriteAircraft.query.filter_by(
+                user_id=current_user.id,
+                icao24=data['icao24']
+            ).delete()
+            db.session.commit()
+            
+            if deleted:
+                return jsonify({'success': True, 'message': 'Удалено из избранного'})
+            else:
+                return jsonify({'success': False, 'error': 'Не найдено в избранном'}), 404
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Ошибка работы с избранным: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/stats')
 @login_required
-def get_global_stats():
+def get_stats():
     """Статистика по самолётам в реальном времени"""
-    if not opensky:
-        return jsonify({'success': False, 'error': 'OpenSky клиент не инициализирован'}), 500
-    
     try:
         data = opensky.get_all_flights()
         
@@ -234,164 +242,95 @@ def get_global_stats():
             flights = data.get('flights', [])
             
             # Подсчёт статистики
+            total = len(flights)
             in_air = sum(1 for f in flights if not f.get('on_ground', True))
-            on_ground = len(flights) - in_air
+            on_ground = total - in_air
+            
+            # Уникальные страны
             countries = set(f.get('country') for f in flights if f.get('country'))
             
-            # Подсчёт по типам самолётов
-            aircraft_types = {}
-            for f in flights:
-                if f.get('typecode'):
-                    aircraft_types[f['typecode']] = aircraft_types.get(f['typecode'], 0) + 1
+            # Средняя высота и скорость
+            altitudes = [f.get('altitude', 0) for f in flights if f.get('altitude')]
+            speeds = [f.get('velocity', 0) for f in flights if f.get('velocity')]
             
-            # Топ-10 самых популярных типов
-            top_types = dict(sorted(aircraft_types.items(), key=lambda x: x[1], reverse=True)[:10])
+            avg_altitude = sum(altitudes) / len(altitudes) if altitudes else 0
+            avg_speed = sum(speeds) / len(speeds) if speeds else 0
             
             return jsonify({
                 'success': True,
-                'total': len(flights),
+                'total': total,
                 'in_air': in_air,
                 'on_ground': on_ground,
                 'countries': len(countries),
-                'top_types': top_types,
-                'timestamp': data.get('time', int(datetime.utcnow().timestamp()))
+                'avg_altitude': round(avg_altitude),
+                'avg_speed': round(avg_speed),
+                'timestamp': data.get('time', int(datetime.now().timestamp()))
             })
         
         return jsonify({'success': False, 'error': 'Нет данных'})
-        
     except Exception as e:
-        logger.error(f"❌ Ошибка получения статистики: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/search')
-@login_required
-def search_flights():
-    """Поиск рейсов по параметрам"""
-    query = request.args.get('q', '').upper()
-    filter_type = request.args.get('type', 'all')
-    
-    if not opensky:
-        return jsonify({'success': False, 'error': 'OpenSky клиент не инициализирован'}), 500
-    
-    try:
-        data = opensky.get_all_flights()
-        
-        if 'success' not in data or not data['success']:
-            return jsonify({'success': False, 'error': 'Нет данных'}), 500
-        
-        flights = data.get('flights', [])
-        results = []
-        
-        for flight in flights:
-            match = False
-            
-            if filter_type == 'callsign' and flight.get('callsign'):
-                match = query in flight['callsign']
-            elif filter_type == 'country' and flight.get('country'):
-                match = query in flight['country'].upper()
-            elif filter_type == 'aircraft' and flight.get('typecode'):
-                match = query in flight['typecode'].upper()
-            else:  # all
-                match = (query in flight.get('callsign', '') or 
-                        query in flight.get('country', '').upper() or 
-                        query in flight.get('typecode', '').upper())
-            
-            if match:
-                results.append({
-                    'icao24': flight['icao24'],
-                    'callsign': flight.get('callsign', '-----'),
-                    'country': flight.get('country', 'Unknown'),
-                    'latitude': flight.get('latitude'),
-                    'longitude': flight.get('longitude'),
-                    'altitude': flight.get('altitude'),
-                    'velocity': flight.get('velocity'),
-                    'typecode': flight.get('typecode', '')
-                })
-        
-        return jsonify({
-            'success': True,
-            'results': results[:50],  # Ограничиваем до 50 результатов
-            'total': len(results)
-        })
-        
-    except Exception as e:
-        logger.error(f"❌ Ошибка поиска: {e}")
+        print(f"❌ Ошибка получения статистики: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/health')
-def health_check():
-    """Endpoint для проверки работоспособности"""
-    health_status = {
-        'status': 'healthy',
-        'timestamp': datetime.utcnow().isoformat(),
-        'environment': 'production' if not app.config.get('DEBUG', False) else 'development',
-        'python_version': sys.version,
-        'modules': {}
-    }
-    
-    # Проверка базы данных
+def health():
+    """Endpoint для проверки работоспособности приложения"""
     try:
-        db.session.execute('SELECT 1')
-        health_status['database'] = 'connected'
+        # Проверка подключения к базе данных
+        db_status = 'connected' if db.engine else 'disconnected'
+        
+        # Проверка OpenSky API
+        opensky_status = 'configured' if Config.OPENSKY_CLIENT_ID else 'not configured'
+        
+        return jsonify({
+            'status': 'healthy',
+            'database': db_status,
+            'opensky': opensky_status,
+            'timestamp': datetime.utcnow().isoformat(),
+            'environment': 'production' if not Config.DEBUG else 'development',
+            'werkzeug_version': werkzeug.__version__
+        })
     except Exception as e:
-        health_status['database'] = f'error: {str(e)}'
-        health_status['status'] = 'degraded'
-    
-    # Проверка OpenSky клиента
-    health_status['opensky'] = 'available' if opensky else 'unavailable'
-    
-    # Проверка почты
-    health_status['email'] = 'configured' if app.config.get('MAIL_USERNAME') else 'not configured'
-    
-    return jsonify(health_status)
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
 
 @app.errorhandler(404)
 def not_found_error(error):
-    """Обработка 404 ошибки"""
+    """Обработчик ошибки 404"""
     return jsonify({'success': False, 'error': 'Страница не найдена'}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    """Обработка 500 ошибки"""
+    """Обработчик ошибки 500"""
     db.session.rollback()
-    logger.error(f"❌ Внутренняя ошибка сервера: {error}")
     return jsonify({'success': False, 'error': 'Внутренняя ошибка сервера'}), 500
 
-@app.errorhandler(429)
-def rate_limit_error(error):
-    """Обработка превышения лимита запросов"""
-    return jsonify({
-        'success': False, 
-        'error': 'Слишком много запросов',
-        'retry_after': 60
-    }), 429
-
 if __name__ == '__main__':
-    # Вывод информации при запуске
+    # Запуск приложения в режиме разработки
     port = int(os.environ.get('PORT', 5000))
-    debug = app.config.get('DEBUG', False)
     
     print(f"""
     ╔══════════════════════════════════════════════════════════════╗
     ║                                                              ║
     ║   ✈️  SkyTrack Pro - Профессиональный трекер рейсов         ║
     ║                                                              ║
-    ║   📍 Адрес: http://0.0.0.0:{port}                            ║
-    ║   🔄 Обновление: каждые {app.config.get('FLIGHT_UPDATE_INTERVAL', 5)} секунд   ║
-    ║   🐍 Python: {sys.version.split()[0]}                        ║
-    ║   🔧 Режим: {'DEBUG' if debug else 'PRODUCTION'}             ║
-    ║                                                              ║
-    ║   🔑 OpenSky: {'✅ Доступен' if opensky else '❌ Недоступен'}              ║
-    ║   🗄️  База данных: {'✅ Подключена' if db.engine else '❌ Ошибка'}         ║
-    ║   📧 Email: {'✅ Настроен' if app.config.get('MAIL_USERNAME') else '❌ Нет'}║
+    ║   📍 Адрес: http://localhost:{port}                          ║
+    ║   🔄 Обновление: каждые {Config.FLIGHT_UPDATE_INTERVAL} секунд   ║
+    ║   🔑 OpenSky: {'✅' if Config.OPENSKY_CLIENT_ID else '❌'}                   ║
+    ║   📧 Email: {'✅' if Config.MAIL_USERNAME else '❌'}                    ║
+    ║   🗄️  База: {'✅' if Config.SQLALCHEMY_DATABASE_URI else '❌'}           ║
+    ║   🗺️  Google Maps: {'✅' if Config.GOOGLE_MAPS_API_KEY else '❌'}        ║
+    ║   🔧 Werkzeug: {werkzeug.__version__}                             ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
     """)
     
-    # Запуск приложения
     app.run(
         host='0.0.0.0',
         port=port,
-        debug=debug,
+        debug=Config.DEBUG,
         threaded=True
-    )
+            )
