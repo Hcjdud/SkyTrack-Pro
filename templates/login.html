@@ -3,9 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkyTrack Pro - Вход</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>SkyTrack Pro - Профессиональный трекер рейсов</title>
+    
+    <!-- MapLibre GL JS (бесплатно, без ключей) -->
+    <script src="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@4.0.0/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
         * {
             margin: 0;
@@ -14,306 +23,856 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0B0F16 0%, #1a1f2e 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            background: #0B0F16;
             color: #fff;
         }
 
-        .auth-container {
-            width: 100%;
-            max-width: 440px;
-            padding: 20px;
-        }
-
-        .auth-card {
+        /* Премиум топ-бар (такой же как в Google Maps версии) */
+        .top-bar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            height: 70px;
             background: rgba(18, 22, 30, 0.95);
             backdrop-filter: blur(20px);
-            border-radius: 32px;
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-        }
-
-        .auth-header {
-            padding: 40px 30px;
-            text-align: center;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .logo-icon {
-            width: 70px;
-            height: 70px;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
             display: flex;
             align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            transform: rotate(45deg);
-        }
-
-        .logo-icon i {
-            transform: rotate(-45deg);
-            font-size: 32px;
+            padding: 0 25px;
             color: white;
         }
 
-        .auth-header h1 {
-            font-size: 28px;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: white;
+            transform: rotate(45deg);
+        }
+
+        .logo-text {
+            font-size: 22px;
             font-weight: 700;
-            margin-bottom: 8px;
+            letter-spacing: -0.5px;
             background: linear-gradient(135deg, #fff, #e0e7ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .auth-header p {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
+        .logo-badge {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #3b82f6;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 30px;
+            margin-left: 10px;
+            letter-spacing: 0.5px;
         }
 
-        .auth-form {
-            padding: 30px;
+        .stats-container {
+            display: flex;
+            gap: 30px;
+            margin-left: 40px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .stat-item {
+            display: flex;
+            flex-direction: column;
         }
 
-        .form-group label {
-            display: block;
-            font-size: 13px;
+        .stat-label {
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.4);
         }
 
-        .input-wrapper {
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            line-height: 1.2;
+        }
+
+        .search-wrapper {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 30px;
             position: relative;
         }
 
-        .input-wrapper i {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 18px;
-            transition: color 0.3s;
-        }
-
-        .input-wrapper input {
+        .search-input {
             width: 100%;
-            height: 52px;
-            background: rgba(255, 255, 255, 0.03);
+            height: 44px;
+            background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 0 16px 0 50px;
-            font-size: 15px;
+            border-radius: 30px;
+            padding: 0 50px 0 20px;
+            font-size: 14px;
             color: white;
             transition: all 0.3s;
         }
 
-        .input-wrapper input:focus {
+        .search-input:focus {
             outline: none;
             border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.05);
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
-        .input-wrapper input:focus + i {
-            color: #3b82f6;
-        }
-
-        .toggle-password {
+        .search-btn {
             position: absolute;
-            right: 16px;
+            right: 5px;
             top: 50%;
             transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-
-        .toggle-password:hover {
-            color: #3b82f6;
-        }
-
-        .error-message {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 16px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            display: none;
-            align-items: center;
-            gap: 10px;
-            color: #ef4444;
-            font-size: 14px;
-        }
-
-        .error-message.show {
-            display: flex;
-        }
-
-        .submit-btn {
-            width: 100%;
-            height: 52px;
+            width: 36px;
+            height: 36px;
             background: linear-gradient(135deg, #3b82f6, #8b5cf6);
             border: none;
-            border-radius: 16px;
+            border-radius: 50%;
             color: white;
-            font-size: 16px;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-left: 20px;
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        /* Сайдбар (такой же) */
+        .sidebar {
+            position: fixed;
+            left: 20px;
+            top: 110px;
+            bottom: 20px;
+            width: 320px;
+            background: rgba(18, 22, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 999;
+            padding: 20px;
+            overflow-y: auto;
+            color: white;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-340px);
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            left: 20px;
+            top: 110px;
+            width: 40px;
+            height: 40px;
+            background: rgba(18, 22, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .filter-section {
+            margin-bottom: 25px;
+        }
+
+        .filter-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 12px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        .flights-list {
+            display: flex;
+            flex-direction: column;
             gap: 10px;
         }
 
-        .submit-btn:hover:not(:disabled) {
+        .flight-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .flight-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(59, 130, 246, 0.3);
             transform: translateY(-2px);
-            filter: brightness(1.1);
-            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
         }
 
-        .submit-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .flight-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
         }
 
-        .auth-footer {
-            text-align: center;
-            margin-top: 25px;
-            padding-top: 25px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        .flight-callsign {
+            font-weight: 700;
+            font-size: 16px;
+            color: white;
         }
 
-        .auth-footer a {
+        .flight-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .flight-detail i {
+            width: 14px;
             color: #3b82f6;
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s;
         }
 
-        .auth-footer a:hover {
-            color: #8b5cf6;
-            text-decoration: underline;
+        /* Легенда высот */
+        .altitude-legend {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 240px;
+            background: rgba(18, 22, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            z-index: 999;
+        }
+
+        .legend-gradient {
+            height: 10px;
+            border-radius: 5px;
+            background: linear-gradient(90deg, 
+                #FF0000, #FF4500, #FFA500, 
+                #FFFF00, #00FF00, #0000FF, 
+                #4B0082, #EE82EE);
+            margin-bottom: 8px;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Панель информации */
+        .info-panel {
+            position: fixed;
+            top: 110px;
+            right: 20px;
+            width: 360px;
+            background: rgba(18, 22, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+
+        .info-panel.hidden {
+            transform: translateX(400px);
+        }
+
+        .info-header {
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .info-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+        }
+
+        .info-content {
+            padding: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: white;
+        }
+
+        /* MapLibre карта */
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Кастомные маркеры для MapLibre */
+        .plane-marker {
+            font-size: 24px;
+            filter: drop-shadow(0 0 10px currentColor);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .plane-marker:hover {
+            transform: scale(1.2);
+            z-index: 1000;
+        }
+
+        .plane-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.2);
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
-                <div class="logo-icon">
-                    <i class="fas fa-plane"></i>
-                </div>
-                <h1>Добро пожаловать</h1>
-                <p>Войдите в SkyTrack Pro для отслеживания рейсов</p>
+    <!-- Топ-бар -->
+    <div class="top-bar">
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-plane"></i>
             </div>
-            
-            <div class="auth-form">
-                <div class="error-message" id="errorMessage">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span>Неверный email или пароль</span>
-                </div>
-                
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <div class="input-wrapper">
-                            <i class="fas fa-envelope"></i>
-                            <input type="email" id="email" placeholder="your@email.com" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Пароль</label>
-                        <div class="input-wrapper">
-                            <i class="fas fa-lock"></i>
-                            <input type="password" id="password" placeholder="••••••••" required>
-                            <i class="fas fa-eye toggle-password" onclick="togglePassword()"></i>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="submit-btn" id="submitBtn">
-                        <i class="fas fa-sign-in-alt"></i>
-                        Войти
-                    </button>
-                </form>
-                
-                <div class="auth-footer">
-                    Нет аккаунта? <a href="/auth/register">Зарегистрироваться</a>
+            <div>
+                <span class="logo-text">SkyTrack</span>
+                <span class="logo-badge">PRO</span>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-item">
+                <span class="stat-label">В ВОЗДУХЕ</span>
+                <span class="stat-value" id="statInAir">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">НА ЗЕМЛЕ</span>
+                <span class="stat-value" id="statOnGround">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">ВСЕГО</span>
+                <span class="stat-value" id="statTotal">0</span>
+            </div>
+        </div>
+
+        <div class="search-wrapper">
+            <input type="text" class="search-input" id="searchInput" placeholder="Поиск по номеру рейса...">
+            <button class="search-btn" id="searchBtn">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+
+        <div class="user-profile">
+            <div class="user-avatar">
+                {{ username[0]|upper if username else 'U' }}
+            </div>
+            <div class="user-info">
+                <span class="user-name">{{ username if username else 'Пользователь' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Сайдбар -->
+    <div class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-chevron-left" id="toggleIcon"></i>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-filter"></i> Фильтры</h3>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-title">ВЫСОТА</div>
+            <div class="filter-buttons">
+                <button class="filter-btn active">Все</button>
+                <button class="filter-btn" data-alt="low">До 5000 ft</button>
+                <button class="filter-btn" data-alt="medium">5000-20000 ft</button>
+                <button class="filter-btn" data-alt="high">20000-35000 ft</button>
+                <button class="filter-btn" data-alt="very-high">35000+ ft</button>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-title">СКОРОСТЬ</div>
+            <div class="filter-buttons">
+                <button class="filter-btn active">Все</button>
+                <button class="filter-btn" data-speed="slow">< 200 уз</button>
+                <button class="filter-btn" data-speed="medium">200-400 уз</button>
+                <button class="filter-btn" data-speed="fast">400-500 уз</button>
+                <button class="filter-btn" data-speed="very-fast">500+ уз</button>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-title">АКТИВНЫЕ РЕЙСЫ</div>
+            <div class="flights-list" id="flightsList">
+                <div style="text-align: center; color: rgba(255,255,255,0.3); padding: 30px;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p style="margin-top: 10px;">Загрузка данных...</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Легенда высот -->
+    <div class="altitude-legend">
+        <div class="legend-title">ВЫСОТА ПОЛЁТА</div>
+        <div class="legend-gradient"></div>
+        <div class="legend-labels">
+            <span>0 ft</span>
+            <span>10k</span>
+            <span>20k</span>
+            <span>30k</span>
+            <span>40k+</span>
+        </div>
+    </div>
+
+    <!-- Панель информации -->
+    <div class="info-panel hidden" id="infoPanel">
+        <div class="info-header">
+            <h2>
+                <i class="fas fa-plane"></i>
+                <span id="infoCallsign">FZ728</span>
+            </h2>
+            <button class="close-btn" id="closePanel">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="info-content" id="infoContent">
+            <!-- Заполняется динамически -->
+        </div>
+    </div>
+
+    <!-- Карта MapLibre -->
+    <div id="map"></div>
+
     <script>
-        function togglePassword() {
-            const password = document.getElementById('password');
-            const icon = document.querySelector('.toggle-password');
-            
-            if (password.type === 'password') {
-                password.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                password.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
+        // Переменные из Flask
+        window.AUTHENTICATED = true;
+        window.UPDATE_INTERVAL = 5;
+        window.username = '{{ username }}';
+
+        // Инициализация MapLibre карты
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {
+                    'osm': {
+                        type: 'raster',
+                        tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                        tileSize: 256,
+                        attribution: '© OpenStreetMap Contributors'
+                    },
+                    'carto-dark': {
+                        type: 'raster',
+                        tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+                        tileSize: 256,
+                        attribution: '© CartoDB'
+                    }
+                },
+                layers: [{
+                    id: 'carto-dark-layer',
+                    type: 'raster',
+                    source: 'carto-dark',
+                    minzoom: 0,
+                    maxzoom: 20
+                }]
+            },
+            center: [30, 30],
+            zoom: 3,
+            minZoom: 2,
+            maxZoom: 18,
+            pitch: 45, // Наклон для 3D эффекта
+            bearing: 0,
+            antialias: true
+        });
+
+        // Добавляем контролы навигации
+        map.addControl(new maplibregl.NavigationControl({
+            visualizePitch: true,
+            showZoom: true,
+            showCompass: true
+        }), 'bottom-right');
+
+        // Добавляем масштаб
+        map.addControl(new maplibregl.ScaleControl({
+            maxWidth: 100,
+            unit: 'metric'
+        }), 'bottom-left');
+
+        // Хранилище маркеров
+        let markers = new Map();
+        let popup = null;
+        let flightsData = [];
+
+        // Функция получения цвета по высоте
+        function getColorByAltitude(altitude) {
+            if (altitude < 1000) return '#FF0000';
+            if (altitude < 5000) return '#FF4500';
+            if (altitude < 10000) return '#FFA500';
+            if (altitude < 20000) return '#FFFF00';
+            if (altitude < 30000) return '#00FF00';
+            if (altitude < 35000) return '#0000FF';
+            if (altitude < 40000) return '#4B0082';
+            return '#EE82EE';
         }
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Создание маркера самолёта
+        function createAircraftMarker(flight) {
+            const color = getColorByAltitude(flight.altitude);
             
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('errorMessage');
-            const submitBtn = document.getElementById('submitBtn');
+            // Создаём HTML для маркера
+            const el = document.createElement('div');
+            el.className = 'plane-marker';
+            el.innerHTML = `
+                <div style="transform: rotate(${flight.heading || 0}deg); display: inline-block;">
+                    <i class="fas fa-plane" style="color: ${color}; font-size: 24px;"></i>
+                </div>
+                <div class="plane-label">${flight.callsign || '---'}</div>
+            `;
             
-            errorDiv.classList.remove('show');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вход...';
+            // Добавляем обработчик клика
+            el.addEventListener('click', () => {
+                showFlightInfo(flight);
+            });
             
-            try {
-                const response = await fetch('/auth/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email, password})
-                });
+            // Создаём маркер MapLibre
+            const marker = new maplibregl.Marker({
+                element: el,
+                anchor: 'center',
+                offset: [0, -12]
+            })
+                .setLngLat([flight.longitude, flight.latitude])
+                .addTo(map);
+            
+            return marker;
+        }
+
+        // Обновление маркеров
+        function updateMarkers(flights) {
+            const currentIds = new Set();
+            
+            flights.forEach(flight => {
+                currentIds.add(flight.icao24);
                 
+                if (markers.has(flight.icao24)) {
+                    // Обновляем существующий маркер
+                    const marker = markers.get(flight.icao24);
+                    marker.setLngLat([flight.longitude, flight.latitude]);
+                    
+                    // Обновляем поворот и цвет
+                    const el = marker.getElement();
+                    const planeIcon = el.querySelector('.fa-plane');
+                    if (planeIcon) {
+                        planeIcon.style.color = getColorByAltitude(flight.altitude);
+                        planeIcon.style.transform = `rotate(${flight.heading || 0}deg)`;
+                    }
+                    const label = el.querySelector('.plane-label');
+                    if (label) {
+                        label.textContent = flight.callsign || '---';
+                    }
+                } else {
+                    // Создаём новый маркер
+                    const marker = createAircraftMarker(flight);
+                    markers.set(flight.icao24, marker);
+                }
+            });
+            
+            // Удаляем старые маркеры
+            markers.forEach((marker, id) => {
+                if (!currentIds.has(id)) {
+                    marker.remove();
+                    markers.delete(id);
+                }
+            });
+        }
+
+        // Получение данных о самолётах
+        async function fetchFlights() {
+            try {
+                const response = await fetch('/api/flights');
                 const data = await response.json();
                 
                 if (data.success) {
-                    window.location.href = data.redirect;
-                } else {
-                    if (data.error === 'email_not_verified') {
-                        window.location.href = '/auth/verify?email=' + encodeURIComponent(email);
-                    } else {
-                        errorDiv.querySelector('span').textContent = data.error || 'Неверный email или пароль';
-                        errorDiv.classList.add('show');
-                    }
+                    flightsData = data.flights || [];
+                    
+                    // Обновляем статистику
+                    document.getElementById('statTotal').textContent = data.total || 0;
+                    document.getElementById('statInAir').textContent = data.in_air || 0;
+                    document.getElementById('statOnGround').textContent = data.on_ground || 0;
+                    
+                    // Обновляем маркеры
+                    updateMarkers(flightsData);
+                    
+                    // Обновляем список рейсов
+                    updateFlightsList(flightsData);
                 }
             } catch (error) {
-                errorDiv.querySelector('span').textContent = 'Ошибка соединения';
-                errorDiv.classList.add('show');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
+                console.error('Error fetching flights:', error);
+            }
+        }
+
+        // Обновление списка рейсов
+        function updateFlightsList(flights) {
+            const container = document.getElementById('flightsList');
+            
+            if (!flights || flights.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.3); padding: 30px;">Нет активных рейсов</div>';
+                return;
+            }
+            
+            let html = '';
+            flights.slice(0, 20).forEach(flight => {
+                html += `
+                    <div class="flight-card" onclick='showFlightInfo(${JSON.stringify(flight).replace(/'/g, "\\'")})'>
+                        <div class="flight-header">
+                            <span class="flight-callsign">${flight.callsign || '----'}</span>
+                        </div>
+                        <div class="flight-details">
+                            <div class="flight-detail">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>${flight.altitude ? flight.altitude.toLocaleString() : '0'} ft</span>
+                            </div>
+                            <div class="flight-detail">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span>${flight.velocity ? Math.round(flight.velocity) : '0'} kts</span>
+                            </div>
+                            <div class="flight-detail">
+                                <i class="fas fa-compass"></i>
+                                <span>${flight.heading || '0'}°</span>
+                            </div>
+                            <div class="flight-detail">
+                                <i class="fas fa-globe"></i>
+                                <span>${flight.country || '???'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Показ информации о самолёте
+        function showFlightInfo(flight) {
+            const panel = document.getElementById('infoPanel');
+            const content = document.getElementById('infoContent');
+            const callsign = document.getElementById('infoCallsign');
+            
+            panel.classList.remove('hidden');
+            callsign.textContent = flight.callsign || 'Unknown';
+            
+            // Центрируем карту на самолёте
+            map.flyTo({
+                center: [flight.longitude, flight.latitude],
+                zoom: 8,
+                pitch: 45,
+                duration: 2000
+            });
+            
+            // Показываем попап
+            if (popup) popup.remove();
+            
+            const color = getColorByAltitude(flight.altitude);
+            popup = new maplibregl.Popup({ offset: [0, -30] })
+                .setLngLat([flight.longitude, flight.latitude])
+                .setHTML(`
+                    <div style="color: white; background: transparent;">
+                        <h3 style="margin:0 0 10px; color: ${color};">${flight.callsign || 'Unknown'}</h3>
+                        <p>Высота: ${flight.altitude || 0} ft</p>
+                        <p>Скорость: ${Math.round(flight.velocity || 0)} kts</p>
+                        <p>Курс: ${flight.heading || 0}°</p>
+                    </div>
+                `)
+                .addTo(map);
+            
+            // Заполняем панель информации
+            content.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">Рейс</span>
+                    <span class="info-value">${flight.callsign || '---'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ICAO код</span>
+                    <span class="info-value">${flight.icao24 || '---'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Страна</span>
+                    <span class="info-value">${flight.country || '---'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Высота</span>
+                    <span class="info-value" style="color: ${color}">${flight.altitude ? flight.altitude.toLocaleString() : '0'} ft</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Скорость</span>
+                    <span class="info-value">${flight.velocity ? Math.round(flight.velocity) : '0'} kts</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Курс</span>
+                    <span class="info-value">${flight.heading || '0'}°</span>
+                </div>
+            `;
+        }
+
+        // Поиск
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const query = document.getElementById('searchInput').value.toUpperCase();
+            const flight = flightsData.find(f => f.callsign && f.callsign.includes(query));
+            
+            if (flight) {
+                showFlightInfo(flight);
+            } else {
+                alert('Рейс не найден');
+            }
+        });
+
+        // Закрытие панели
+        document.getElementById('closePanel').addEventListener('click', () => {
+            document.getElementById('infoPanel').classList.add('hidden');
+            if (popup) {
+                popup.remove();
+                popup = null;
+            }
+        });
+
+        // Тоггл сайдбара
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            const icon = document.getElementById('toggleIcon');
+            
+            sidebar.classList.toggle('hidden');
+            if (sidebar.classList.contains('hidden')) {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            } else {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            }
+        });
+
+        // Запуск
+        fetchFlights();
+        setInterval(fetchFlights, window.UPDATE_INTERVAL * 1000);
+
+        // При клике на карте закрываем попап
+        map.on('click', () => {
+            if (popup) {
+                popup.remove();
+                popup = null;
             }
         });
     </script>
 </body>
-</html>
+                </html>
