@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyTrack Pro - Подтверждение email</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0B0F16 0%, #1a1f2e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Анимированный фон с самолётами */
+        .background-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.1;
+            pointer-events: none;
+        }
+
+        .plane {
+            position: absolute;
+            font-size: 24px;
+            color: #3b82f6;
+            animation: fly 20s linear infinite;
+        }
+
+        @keyframes fly {
+            0% {
+                transform: translate(-100px, -100px) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(calc(100vw + 100px), calc(100vh + 100px)) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .plane:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
+        .plane:nth-child(2) { top: 50%; left: 30%; animation-delay: 5s; }
+        .plane:nth-child(3) { top: 80%; left: 60%; animation-delay: 10s; }
+        .plane:nth-child(4) { top: 10%; left: 80%; animation-delay: 15s; }
+
+        .verify-container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            z-index: 10;
+            position: relative;
+        }
+
+        .verify-card {
+            background: rgba(18, 22, 30, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .verify-header {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            padding: 40px 30px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .verify-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .verify-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            position: relative;
+            z-index: 1;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+            70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+
+        .verify-icon i {
+            font-size: 32px;
+            color: white;
+        }
+
+        .verify-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+            z-index: 1;
+        }
+
+        .verify-header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .verify-content {
+            padding: 40px 30px;
+        }
+
+        .email-display {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 60px;
+            padding: 15px 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 auto 30px;
+            width: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .email-display i {
+            color: #3b82f6;
+            font-size: 18px;
+        }
+
+        .email-display span {
+            font-weight: 600;
+            font-size: 16px;
+            color: white;
+        }
+
+        .code-inputs {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .code-input {
+            width: 70px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            font-size: 42px;
+            font-weight: 700;
+            text-align: center;
+            color: white;
+            transition: all 0.2s;
+            font-family: 'Inter', monospace;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .code-input.error {
+            border-color: #ef4444;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .timer-container {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            border-radius: 60px;
+            padding: 15px 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            margin: 0 auto 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .timer-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timer-icon i {
+            color: #3b82f6;
+            font-size: 18px;
+        }
+
+        .timer-text {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .timer-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #3b82f6;
+            font-family: monospace;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin: 30px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            width: 100%;
+            animation: progress 5s linear;
+        }
+
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 15px 25px;
+            border-radius: 60px;
+            font-size: 14px;
+            margin: 20px 0;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        .error-message i {
+            font-size: 18px;
+        }
+
+        .resend-btn {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px 35px;
+            border-radius: 60px;
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .resend-btn:hover:not(:disabled) {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .resend-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .resend-btn i {
+            font-size: 14px;
+        }
+
+        .resend-timer {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .back-link {
+            margin-top: 25px;
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: #3b82f6;
+        }
+
+        .success-checkmark {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            z-index: 100;
+        }
+
+        .success-checkmark.show {
+            display: block;
+            animation: checkmark 0.5s ease;
+        }
+
+        @keyframes checkmark {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            80% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .success-checkmark svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .success-checkmark circle {
+            stroke: #10b981;
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            animation: circle 0.6s ease forwards;
+        }
+
+        .success-checkmark path {
+            stroke: #10b981;
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: check 0.4s ease 0.6s forwards;
+        }
+
+        @keyframes circle {
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes check {
+            to { stroke-dashoffset: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-animation">
+        <div class="plane"><i class="fas fa-plane"></i></div>
+        <div class="plane"><i class="fas fa-plane"></i></div>
+        <div class="plane"><i class="fas fa-plane"></i></div>
+        <div class="plane"><i class="fas fa-plane"></i></div>
+    </div>
+
+    <div class="verify-container">
+        <div class="verify-card">
+            <div class="verify-header">
+                <div class="verify-icon">
+                    <i class="fas fa-envelope-open-text"></i>
+                </div>
+                <h1>Проверьте почту</h1>
+                <p>Мы отправили код подтверждения на ваш email</p>
+            </div>
+            
+            <div class="verify-content">
+                <div class="email-display">
+                    <i class="fas fa-envelope"></i>
+                    <span id="emailDisplay">{{ email }}</span>
+                </div>
+                
+                <div class="code-inputs">
+                    <input type="text" class="code-input" maxlength="1" id="code1" autofocus>
+                    <input type="text" class="code-input" maxlength="1" id="code2">
+                    <input type="text" class="code-input" maxlength="1" id="code3">
+                    <input type="text" class="code-input" maxlength="1" id="code4">
+                    <input type="text" class="code-input" maxlength="1" id="code5">
+                </div>
+                
+                <div class="timer-container">
+                    <div class="timer-icon">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="timer-text">
+                        Код действителен: 
+                        <span class="timer-value" id="timer">5:00</span>
+                    </div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+                
+                <div class="error-message" id="errorMessage">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Неверный код. Попробуйте снова.</span>
+                </div>
+                
+                <div style="text-align: center;">
+                    <button class="resend-btn" id="resendBtn" onclick="resendCode()">
+                        <i class="fas fa-redo-alt"></i>
+                        Отправить код повторно
+                        <span class="resend-timer" id="resendTimer"></span>
+                    </button>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="/auth/login" class="back-link">
+                        <i class="fas fa-arrow-left"></i>
+                        Вернуться ко входу
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="success-checkmark" id="successCheckmark">
+        <svg viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="25" fill="none"/>
+            <path fill="none" d="M14 27l7 7 16-16"/>
+        </svg>
+    </div>
+
+    <script>
+        const email = '{{ email }}';
+        let timeLeft = 300; // 5 минут в секундах
+        let timerInterval;
+        let resendCooldown = 60; // 60 секунд до повторной отправки
+        let resendInterval;
+        
+        // Инициализация таймера
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById('timer').textContent = '0:00';
+                document.getElementById('resendBtn').disabled = false;
+            }
+        }
+        
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimer();
+        }, 1000);
+        
+        // Автоматический переход между полями
+        const inputs = document.querySelectorAll('.code-input');
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', function() {
+                // Убираем класс ошибки при вводе
+                this.classList.remove('error');
+                
+                if (this.value.length === 1) {
+                    if (index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    } else {
+                        // Последний символ введён - отправляем код
+                        verifyCode();
+                    }
+                }
+            });
+            
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !this.value && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+            
+            // Разрешаем только цифры
+            input.addEventListener('keypress', function(e) {
+                if (!/^\d$/.test(e.key)) {
+                    e.preventDefault();
+                }
+            });
+            
+            // Вставка из буфера обмена
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const paste = e.clipboardData.getData('text');
+                if (/^\d{5}$/.test(paste)) {
+                    const digits = paste.split('');
+                    inputs.forEach((inp, i) => {
+                        inp.value = digits[i] || '';
+                    });
+                    verifyCode();
+                }
+            });
+        });
+        
+        async function verifyCode() {
+            const code = Array.from(inputs).map(i => i.value).join('');
+            
+            if (code.length !== 5) return;
+            
+            const errorDiv = document.getElementById('errorMessage');
+            
+            try {
+                const response = await fetch('/auth/verify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, code})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Показываем анимацию успеха
+                    const checkmark = document.getElementById('successCheckmark');
+                    checkmark.classList.add('show');
+                    
+                    // Анимируем поля
+                    inputs.forEach(input => {
+                        input.style.borderColor = '#10b981';
+                        input.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                    });
+                    
+                    // Перенаправляем через 1.5 секунды
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1500);
+                } else {
+                    errorDiv.classList.add('show');
+                    inputs.forEach(input => {
+                        input.classList.add('error');
+                        input.value = '';
+                    });
+                    inputs[0].focus();
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                errorDiv.classList.add('show');
+            }
+        }
+        
+        async function resendCode() {
+            const btn = document.getElementById('resendBtn');
+            if (btn.disabled) return;
+            
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/auth/resend-code', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Сбрасываем таймер
+                    timeLeft = 300;
+                    updateTimer();
+                    
+                    // Запускаем кулдаун на повторную отправку
+                    let cooldown = 60;
+                    const timerSpan = document.getElementById('resendTimer');
+                    
+                    if (resendInterval) clearInterval(resendInterval);
+                    
+                    resendInterval = setInterval(() => {
+                        cooldown--;
+                        if (cooldown <= 0) {
+                            clearInterval(resendInterval);
+                            btn.disabled = false;
+                            timerSpan.textContent = '';
+                        } else {
+                            timerSpan.textContent = `(${cooldown}с)`;
+                        }
+                    }, 1000);
+                    
+                    // Очищаем поля
+                    inputs.forEach(i => {
+                        i.value = '';
+                        i.classList.remove('error');
+                    });
+                    inputs[0].focus();
+                    
+                    document.getElementById('errorMessage').classList.remove('show');
+                }
+            } catch (error) {
+                console.error('Resend error:', error);
+                btn.disabled = false;
+            }
+        }
+        
+        // Фокус на первое поле при загрузке
+        window.addEventListener('load', () => {
+            inputs[0].focus();
+        });
+    </script>
+</body>
+</html>
