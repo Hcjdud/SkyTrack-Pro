@@ -115,7 +115,7 @@
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
-            padding: 0 45px 0 50px;
+            padding: 0 16px 0 50px;
             font-size: 15px;
             color: white;
             transition: all 0.3s;
@@ -129,28 +129,6 @@
         }
 
         .input-wrapper input:focus + i {
-            color: #3b82f6;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            font-size: 18px;
-            transition: color 0.3s;
-            z-index: 10;
-            background: transparent;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .toggle-password:hover {
             color: #3b82f6;
         }
 
@@ -168,6 +146,23 @@
         }
 
         .error-message.show {
+            display: flex;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #10b981;
+            font-size: 14px;
+        }
+
+        .success-message.show {
             display: flex;
         }
 
@@ -233,12 +228,17 @@
             <div class="auth-form">
                 <div class="error-message" id="errorMessage">
                     <i class="fas fa-exclamation-circle"></i>
-                    <span>Неверный email или пароль</span>
+                    <span id="errorText">Неверный email или пароль</span>
                 </div>
                 
-                <form id="loginForm">
+                <div class="success-message" id="successMessage">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="successText">Успешный вход!</span>
+                </div>
+                
+                <form id="loginForm" onsubmit="return false;">
                     <div class="form-group">
-                        <label>Email</label>
+                        <label>EMAIL</label>
                         <div class="input-wrapper">
                             <i class="fas fa-envelope"></i>
                             <input type="email" id="email" placeholder="your@email.com" required>
@@ -246,15 +246,14 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Пароль</label>
+                        <label>ПАРОЛЬ</label>
                         <div class="input-wrapper">
                             <i class="fas fa-lock"></i>
                             <input type="password" id="password" placeholder="••••••••" required>
-                            <i class="fas fa-eye toggle-password" onclick="togglePassword()" id="togglePassword"></i>
                         </div>
                     </div>
                     
-                    <button type="submit" class="submit-btn" id="submitBtn">
+                    <button type="button" class="submit-btn" id="submitBtn" onclick="submitLogin()">
                         <i class="fas fa-sign-in-alt"></i>
                         Войти
                     </button>
@@ -268,33 +267,18 @@
     </div>
 
     <script>
-        function togglePassword() {
-            const password = document.getElementById('password');
-            const icon = document.getElementById('togglePassword');
-            
-            if (password.type === 'password') {
-                password.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                password.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        }
-
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
+        async function submitLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
             const submitBtn = document.getElementById('submitBtn');
             
             errorDiv.classList.remove('show');
+            successDiv.classList.remove('show');
             
             if (!email || !password) {
-                errorDiv.querySelector('span').textContent = 'Заполните все поля';
+                document.getElementById('errorText').textContent = 'Заполните все поля';
                 errorDiv.classList.add('show');
                 return;
             }
@@ -312,24 +296,27 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    window.location.href = data.redirect;
+                    successDiv.classList.add('show');
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
                 } else {
                     if (data.error === 'email_not_verified') {
                         window.location.href = '/auth/verify?email=' + encodeURIComponent(email);
                     } else {
-                        errorDiv.querySelector('span').textContent = data.error || 'Неверный email или пароль';
+                        document.getElementById('errorText').textContent = data.error || 'Неверный email или пароль';
                         errorDiv.classList.add('show');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
                     }
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
                 }
             } catch (error) {
-                errorDiv.querySelector('span').textContent = 'Ошибка соединения с сервером';
+                document.getElementById('errorText').textContent = 'Ошибка соединения';
                 errorDiv.classList.add('show');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
             }
-        });
+        }
     </script>
 </body>
 </html>
