@@ -5,7 +5,9 @@ from models import db, User, VerificationCode
 from email_service import send_verification_email, send_welcome_email
 from datetime import datetime
 import re
+import logging
 
+logger = logging.getLogger(__name__)
 auth_bp = Blueprint('auth', __name__)
 
 def is_valid_email(email):
@@ -49,6 +51,7 @@ def login():
         
         return jsonify({'success': True, 'redirect': '/'})
     except Exception as e:
+        logger.error(f"Ошибка входа: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
@@ -66,6 +69,8 @@ def register():
         username = data.get('username', '').strip()
         password = data.get('password', '')
         password_confirm = data.get('password_confirm', '')
+        
+        logger.info(f"Попытка регистрации: {email}, {username}")
         
         # Валидация
         if not is_valid_email(email):
@@ -97,17 +102,16 @@ def register():
         
         db.session.add(user)
         db.session.commit()
+        logger.info(f"Пользователь создан: {user.id}")
         
         # Генерация кода подтверждения
         verification = VerificationCode.create_for_user(user)
+        logger.info(f"Код подтверждения сгенерирован: {verification.code}")
         
         # Отправка email с кодом
-        try:
-            send_verification_email(email, verification.code, current_app._get_current_object())
-            print(f"✅ Код отправлен на {email}: {verification.code}")
-        except Exception as e:
-            print(f"❌ Ошибка отправки email: {e}")
-            # Даже если почта не отправилась, код сохраняется в БД
+        logger.info(f"Попытка отправки кода на {email}")
+        send_verification_email(email, verification.code, current_app._get_current_object())
+        logger.info(f"Функция отправки вызвана")
         
         # Сохраняем email в сессии
         session['verification_email'] = email
@@ -119,6 +123,9 @@ def register():
         })
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Ошибка регистрации: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @auth_bp.route('/verify', methods=['GET', 'POST'])
@@ -136,6 +143,8 @@ def verify():
         email = data.get('email', '').strip().lower()
         code = data.get('code', '').strip()
         
+        logger.info(f"Попытка верификации: {email}, код: {code}")
+        
         if not email or not code:
             return jsonify({'success': False, 'error': 'Не указан email или код'}), 400
         
@@ -152,18 +161,20 @@ def verify():
         ).filter(VerificationCode.expires_at > datetime.utcnow()).first()
         
         if not verification:
+            logger.warning(f"Неверный код для {email}")
             return jsonify({'success': False, 'error': 'Неверный или истёкший код'}), 400
         
         # Активация пользователя
         verification.used = True
         user.is_verified = True
         db.session.commit()
+        logger.info(f"Пользователь {email} подтверждён")
         
         # Отправка приветственного письма
         try:
             send_welcome_email(email, user.username, current_app._get_current_object())
         except Exception as e:
-            print(f"❌ Ошибка отправки приветствия: {e}")
+            logger.error(f"Ошибка отправки приветствия: {e}")
         
         # Автоматический вход
         login_user(user, remember=True)
@@ -178,6 +189,7 @@ def verify():
         })
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Ошибка верификации: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @auth_bp.route('/resend-code', methods=['POST'])
@@ -189,6 +201,7 @@ def resend_code():
             return jsonify({'success': False, 'error': 'Нет данных'}), 400
         
         email = data.get('email', '').strip().lower()
+        logger.info(f"Повторная отправка кода для {email}")
         
         user = User.query.filter_by(email=email, is_verified=False).first()
         if not user:
@@ -196,19 +209,17 @@ def resend_code():
         
         # Создаём новый код
         verification = VerificationCode.create_for_user(user)
+        logger.info(f"Новый код сгенерирован: {verification.code}")
         
         # Отправляем email
-        try:
-            send_verification_email(email, verification.code, current_app._get_current_object())
-            print(f"✅ Новый код отправлен на {email}: {verification.code}")
-        except Exception as e:
-            print(f"❌ Ошибка отправки email: {e}")
+        send_verification_email(email, verification.code, current_app._get_current_object())
         
         return jsonify({
             'success': True,
             'message': 'Код отправлен повторно'
         })
     except Exception as e:
+        logger.error(f"Ошибка повторной отправки: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @auth_bp.route('/logout')
