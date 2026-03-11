@@ -338,22 +338,25 @@
     </div>
 
     <script>
+        let passwordValid = false;
+        let passwordsMatch = false;
+
         // Проверка сложности пароля
         function checkPasswordStrength() {
             const password = document.getElementById('password').value;
             const strengthBar = document.getElementById('passwordStrength');
             const lengthHint = document.getElementById('lengthHint');
             
-            // Проверка длины
             if (password.length >= 6) {
                 lengthHint.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> Минимум 6 символов ✓';
                 lengthHint.className = 'password-hint valid';
+                passwordValid = true;
             } else {
                 lengthHint.innerHTML = '<i class="fas fa-times-circle" style="color: #ef4444;"></i> Минимум 6 символов ✗';
                 lengthHint.className = 'password-hint invalid';
+                passwordValid = false;
             }
             
-            // Оценка сложности
             if (password.length === 0) {
                 strengthBar.style.width = '0';
                 strengthBar.className = 'password-strength-bar';
@@ -377,7 +380,6 @@
                 strengthBar.classList.add('strong');
             }
             
-            // Проверяем совпадение паролей
             checkPasswordMatch();
         }
 
@@ -390,16 +392,18 @@
             if (confirm.length === 0) {
                 matchHint.innerHTML = '<i class="fas fa-circle" style="color: rgba(255,255,255,0.5);"></i> Пароли должны совпадать';
                 matchHint.className = 'password-hint';
+                passwordsMatch = false;
             } else if (password === confirm) {
                 matchHint.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> Пароли совпадают ✓';
                 matchHint.className = 'password-hint valid';
+                passwordsMatch = true;
             } else {
                 matchHint.innerHTML = '<i class="fas fa-times-circle" style="color: #ef4444;"></i> Пароли не совпадают ✗';
                 matchHint.className = 'password-hint invalid';
+                passwordsMatch = false;
             }
         }
 
-        // Добавляем обработчики событий
         document.getElementById('password').addEventListener('input', checkPasswordStrength);
         document.getElementById('passwordConfirm').addEventListener('input', checkPasswordMatch);
 
@@ -415,11 +419,10 @@
             const successDiv = document.getElementById('successMessage');
             const submitBtn = document.getElementById('submitBtn');
             
-            // Скрываем старые сообщения
             errorDiv.classList.remove('show');
             successDiv.classList.remove('show');
             
-            // Валидация на клиенте
+            // Валидация
             if (!email || !username || !password || !passwordConfirm) {
                 errorText.textContent = 'Заполните все поля';
                 errorDiv.classList.add('show');
@@ -450,7 +453,6 @@
                 return;
             }
             
-            // Отправка на сервер
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Регистрация...';
             
@@ -486,7 +488,6 @@
                 errorDiv.classList.add('show');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Зарегистрироваться';
-                console.error('Registration error:', error);
             }
         }
     </script>
