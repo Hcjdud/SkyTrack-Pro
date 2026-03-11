@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""
-Клиент для OpenSky Network API
-"""
-
 import requests
 import time
 from datetime import datetime
@@ -69,12 +62,14 @@ class OpenSkyClient:
                 return {'error': f'HTTP {response.status_code}'}
                 
         except Exception as e:
+            print(f"Error fetching flights: {e}")
             return {'error': str(e)}
     
     def _process_flight_data(self, data):
         """Обработка данных о полётах"""
         states = data.get('states', [])
         enriched = []
+        in_air_count = 0
         
         for state in states[:5000]:
             try:
@@ -84,19 +79,40 @@ class OpenSkyClient:
                 if state[5] is None or state[6] is None:
                     continue
                 
+                # Конвертация высоты из метров в футы
+                altitude_m = state[7] or 0
+                altitude_ft = altitude_m * 3.28084
+                
+                # Конвертация скорости из м/с в узлы
+                speed_ms = state[9] or 0
+                speed_knots = speed_ms * 1.94384
+                
+                # Вертикальная скорость из м/с в фут/мин
+                vertical_ms = state[11] or 0
+                vertical_fpm = vertical_ms * 196.85
+                
+                on_ground = bool(state[8])
+                if not on_ground:
+                    in_air_count += 1
+                
                 flight = {
                     'icao24': state[0],
                     'callsign': state[1].strip() if state[1] else '-----',
                     'country': state[2] or 'Unknown',
                     'latitude': float(state[6]),
                     'longitude': float(state[5]),
-                    'altitude': round((state[7] or 0) * 3.28084),
-                    'velocity': round((state[9] or 0) * 1.94384),
+                    'altitude': round(altitude_ft),
+                    'velocity': round(speed_knots),
                     'heading': round(state[10] or 0),
-                    'vertical_rate': round((state[11] or 0) * 196.85),
-                    'on_ground': bool(state[8]),
+                    'vertical_rate': round(vertical_fpm),
+                    'on_ground': on_ground,
                     'squawk': state[14] or '----',
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now().isoformat(),
+                    'typecode': 'B738',
+                    'model': 'Boeing 737',
+                    'operator': 'Unknown',
+                    'from': '???',
+                    'to': '???'
                 }
                 
                 enriched.append(flight)
@@ -122,6 +138,8 @@ class OpenSkyClient:
             'success': True,
             'flights': enriched,
             'total': len(enriched),
+            'in_air': in_air_count,
+            'on_ground': len(enriched) - in_air_count,
             'time': data.get('time', int(time.time()))
         }
     
