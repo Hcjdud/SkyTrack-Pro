@@ -115,7 +115,7 @@
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
-            padding: 0 16px 0 50px;
+            padding: 0 45px 0 50px;
             font-size: 15px;
             color: white;
             transition: all 0.3s;
@@ -129,6 +129,28 @@
         }
 
         .input-wrapper input:focus + i {
+            color: #3b82f6;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            font-size: 18px;
+            transition: color 0.3s;
+            z-index: 10;
+            background: transparent;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-password:hover {
             color: #3b82f6;
         }
 
@@ -228,6 +250,7 @@
                         <div class="input-wrapper">
                             <i class="fas fa-lock"></i>
                             <input type="password" id="password" placeholder="••••••••" required>
+                            <i class="fas fa-eye toggle-password" onclick="togglePassword()" id="togglePassword"></i>
                         </div>
                     </div>
                     
@@ -245,6 +268,21 @@
     </div>
 
     <script>
+        function togglePassword() {
+            const password = document.getElementById('password');
+            const icon = document.getElementById('togglePassword');
+            
+            if (password.type === 'password') {
+                password.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -254,6 +292,13 @@
             const submitBtn = document.getElementById('submitBtn');
             
             errorDiv.classList.remove('show');
+            
+            if (!email || !password) {
+                errorDiv.querySelector('span').textContent = 'Заполните все поля';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Вход...';
             
@@ -275,15 +320,16 @@
                         errorDiv.querySelector('span').textContent = data.error || 'Неверный email или пароль';
                         errorDiv.classList.add('show');
                     }
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
                 }
             } catch (error) {
-                errorDiv.querySelector('span').textContent = 'Ошибка соединения';
+                errorDiv.querySelector('span').textContent = 'Ошибка соединения с сервером';
                 errorDiv.classList.add('show');
-            } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Войти';
             }
         });
     </script>
 </body>
-    </html>
+</html>
