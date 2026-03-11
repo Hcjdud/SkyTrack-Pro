@@ -25,47 +25,6 @@
             overflow: hidden;
         }
 
-        /* Анимированный фон с самолётами */
-        .background-animation {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            opacity: 0.1;
-            pointer-events: none;
-        }
-
-        .plane {
-            position: absolute;
-            font-size: 24px;
-            color: #3b82f6;
-            animation: fly 20s linear infinite;
-        }
-
-        @keyframes fly {
-            0% {
-                transform: translate(-100px, -100px) rotate(0deg);
-                opacity: 0;
-            }
-            10% {
-                opacity: 1;
-            }
-            90% {
-                opacity: 1;
-            }
-            100% {
-                transform: translate(calc(100vw + 100px), calc(100vh + 100px)) rotate(360deg);
-                opacity: 0;
-            }
-        }
-
-        .plane:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
-        .plane:nth-child(2) { top: 50%; left: 30%; animation-delay: 5s; }
-        .plane:nth-child(3) { top: 80%; left: 60%; animation-delay: 10s; }
-        .plane:nth-child(4) { top: 10%; left: 80%; animation-delay: 15s; }
-
         .verify-container {
             width: 100%;
             max-width: 500px;
@@ -77,7 +36,6 @@
         .verify-card {
             background: rgba(18, 22, 30, 0.95);
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             border-radius: 32px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
@@ -101,24 +59,6 @@
             padding: 40px 30px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .verify-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%);
-            animation: rotate 20s linear infinite;
-        }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
 
         .verify-icon {
@@ -130,15 +70,6 @@
             align-items: center;
             justify-content: center;
             margin: 0 auto 20px;
-            position: relative;
-            z-index: 1;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
-            70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
         }
 
         .verify-icon i {
@@ -153,15 +84,11 @@
             background: linear-gradient(135deg, #fff, #e0e7ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            position: relative;
-            z-index: 1;
         }
 
         .verify-header p {
             color: rgba(255, 255, 255, 0.7);
             font-size: 15px;
-            position: relative;
-            z-index: 1;
         }
 
         .verify-content {
@@ -178,7 +105,6 @@
             gap: 10px;
             margin: 0 auto 30px;
             width: auto;
-            backdrop-filter: blur(10px);
         }
 
         .email-display i {
@@ -240,8 +166,6 @@
             align-items: center;
             gap: 15px;
             margin: 0 auto 25px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(59, 130, 246, 0.2);
         }
 
         .timer-icon {
@@ -271,27 +195,6 @@
             font-family: monospace;
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            margin: 30px 0;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-            width: 100%;
-            animation: progress 5s linear;
-        }
-
-        @keyframes progress {
-            from { width: 100%; }
-            to { width: 0%; }
-        }
-
         .error-message {
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.3);
@@ -303,15 +206,10 @@
             display: none;
             align-items: center;
             gap: 10px;
-            backdrop-filter: blur(10px);
         }
 
         .error-message.show {
             display: flex;
-        }
-
-        .error-message i {
-            font-size: 18px;
         }
 
         .resend-btn {
@@ -327,7 +225,6 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            backdrop-filter: blur(10px);
         }
 
         .resend-btn:hover:not(:disabled) {
@@ -339,15 +236,6 @@
         .resend-btn:disabled {
             opacity: 0.3;
             cursor: not-allowed;
-        }
-
-        .resend-btn i {
-            font-size: 14px;
-        }
-
-        .resend-timer {
-            color: #3b82f6;
-            font-weight: 600;
         }
 
         .back-link {
@@ -420,13 +308,6 @@
     </style>
 </head>
 <body>
-    <div class="background-animation">
-        <div class="plane"><i class="fas fa-plane"></i></div>
-        <div class="plane"><i class="fas fa-plane"></i></div>
-        <div class="plane"><i class="fas fa-plane"></i></div>
-        <div class="plane"><i class="fas fa-plane"></i></div>
-    </div>
-
     <div class="verify-container">
         <div class="verify-card">
             <div class="verify-header">
@@ -461,10 +342,6 @@
                     </div>
                 </div>
                 
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressBar"></div>
-                </div>
-                
                 <div class="error-message" id="errorMessage">
                     <i class="fas fa-exclamation-circle"></i>
                     <span>Неверный код. Попробуйте снова.</span>
@@ -474,7 +351,6 @@
                     <button class="resend-btn" id="resendBtn" onclick="resendCode()">
                         <i class="fas fa-redo-alt"></i>
                         Отправить код повторно
-                        <span class="resend-timer" id="resendTimer"></span>
                     </button>
                 </div>
                 
@@ -497,12 +373,12 @@
 
     <script>
         const email = '{{ email }}';
-        let timeLeft = 300; // 5 минут в секундах
+        let timeLeft = 300; // 5 минут
         let timerInterval;
-        let resendCooldown = 60; // 60 секунд до повторной отправки
-        let resendInterval;
         
-        // Инициализация таймера
+        const inputs = document.querySelectorAll('.code-input');
+        
+        // Обновление таймера
         function updateTimer() {
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
@@ -512,7 +388,6 @@
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
                 document.getElementById('timer').textContent = '0:00';
-                document.getElementById('resendBtn').disabled = false;
             }
         }
         
@@ -522,17 +397,14 @@
         }, 1000);
         
         // Автоматический переход между полями
-        const inputs = document.querySelectorAll('.code-input');
         inputs.forEach((input, index) => {
             input.addEventListener('input', function() {
-                // Убираем класс ошибки при вводе
                 this.classList.remove('error');
                 
                 if (this.value.length === 1) {
                     if (index < inputs.length - 1) {
                         inputs[index + 1].focus();
                     } else {
-                        // Последний символ введён - отправляем код
                         verifyCode();
                     }
                 }
@@ -544,23 +416,9 @@
                 }
             });
             
-            // Разрешаем только цифры
             input.addEventListener('keypress', function(e) {
                 if (!/^\d$/.test(e.key)) {
                     e.preventDefault();
-                }
-            });
-            
-            // Вставка из буфера обмена
-            input.addEventListener('paste', function(e) {
-                e.preventDefault();
-                const paste = e.clipboardData.getData('text');
-                if (/^\d{5}$/.test(paste)) {
-                    const digits = paste.split('');
-                    inputs.forEach((inp, i) => {
-                        inp.value = digits[i] || '';
-                    });
-                    verifyCode();
                 }
             });
         });
@@ -582,17 +440,13 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Показываем анимацию успеха
                     const checkmark = document.getElementById('successCheckmark');
                     checkmark.classList.add('show');
                     
-                    // Анимируем поля
                     inputs.forEach(input => {
                         input.style.borderColor = '#10b981';
-                        input.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
                     });
                     
-                    // Перенаправляем через 1.5 секунды
                     setTimeout(() => {
                         window.location.href = data.redirect;
                     }, 1500);
@@ -605,15 +459,12 @@
                     inputs[0].focus();
                 }
             } catch (error) {
-                console.error('Verification error:', error);
                 errorDiv.classList.add('show');
             }
         }
         
         async function resendCode() {
             const btn = document.getElementById('resendBtn');
-            if (btn.disabled) return;
-            
             btn.disabled = true;
             
             try {
@@ -626,28 +477,9 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Сбрасываем таймер
                     timeLeft = 300;
                     updateTimer();
                     
-                    // Запускаем кулдаун на повторную отправку
-                    let cooldown = 60;
-                    const timerSpan = document.getElementById('resendTimer');
-                    
-                    if (resendInterval) clearInterval(resendInterval);
-                    
-                    resendInterval = setInterval(() => {
-                        cooldown--;
-                        if (cooldown <= 0) {
-                            clearInterval(resendInterval);
-                            btn.disabled = false;
-                            timerSpan.textContent = '';
-                        } else {
-                            timerSpan.textContent = `(${cooldown}с)`;
-                        }
-                    }, 1000);
-                    
-                    // Очищаем поля
                     inputs.forEach(i => {
                         i.value = '';
                         i.classList.remove('error');
@@ -658,11 +490,14 @@
                 }
             } catch (error) {
                 console.error('Resend error:', error);
-                btn.disabled = false;
+            } finally {
+                setTimeout(() => {
+                    btn.disabled = false;
+                }, 60000);
             }
         }
         
-        // Фокус на первое поле при загрузке
+        // Фокус на первое поле
         window.addEventListener('load', () => {
             inputs[0].focus();
         });
