@@ -101,10 +101,15 @@ def register():
         # Генерация кода подтверждения
         verification = VerificationCode.create_for_user(user)
         
-        # Отправка email
-        send_verification_email(email, verification.code, current_app._get_current_object())
+        # Отправка email с кодом
+        try:
+            send_verification_email(email, verification.code, current_app._get_current_object())
+            print(f"✅ Код отправлен на {email}: {verification.code}")
+        except Exception as e:
+            print(f"❌ Ошибка отправки email: {e}")
+            # Даже если почта не отправилась, код сохраняется в БД
         
-        # Сохраняем email в сессии для страницы верификации
+        # Сохраняем email в сессии
         session['verification_email'] = email
         
         return jsonify({
@@ -155,7 +160,10 @@ def verify():
         db.session.commit()
         
         # Отправка приветственного письма
-        send_welcome_email(email, user.username, current_app._get_current_object())
+        try:
+            send_welcome_email(email, user.username, current_app._get_current_object())
+        except Exception as e:
+            print(f"❌ Ошибка отправки приветствия: {e}")
         
         # Автоматический вход
         login_user(user, remember=True)
@@ -190,7 +198,11 @@ def resend_code():
         verification = VerificationCode.create_for_user(user)
         
         # Отправляем email
-        send_verification_email(email, verification.code, current_app._get_current_object())
+        try:
+            send_verification_email(email, verification.code, current_app._get_current_object())
+            print(f"✅ Новый код отправлен на {email}: {verification.code}")
+        except Exception as e:
+            print(f"❌ Ошибка отправки email: {e}")
         
         return jsonify({
             'success': True,
