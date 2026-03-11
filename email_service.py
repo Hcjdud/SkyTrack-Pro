@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""
-Сервис отправки email для SkyTrack Pro
-"""
-
 from flask_mail import Mail, Message
 from threading import Thread
 from flask import current_app
@@ -71,6 +64,12 @@ def send_verification_email(user_email, code, app):
                 border-radius: 16px;
                 margin: 20px 0;
             }}
+            .footer {{
+                text-align: center;
+                padding: 30px;
+                color: rgba(255,255,255,0.5);
+                font-size: 12px;
+            }}
         </style>
     </head>
     <body>
@@ -80,9 +79,12 @@ def send_verification_email(user_email, code, app):
             </div>
             <div class="content">
                 <h2>Подтверждение email</h2>
-                <p>Ваш код подтверждения:</p>
+                <p>Здравствуйте! Для завершения регистрации введите код:</p>
                 <div class="code">{code}</div>
                 <p>Код действителен 5 минут.</p>
+            </div>
+            <div class="footer">
+                <p>© 2025 SkyTrack Pro. Все права защищены.</p>
             </div>
         </div>
     </body>
@@ -122,9 +124,20 @@ def send_welcome_email(user_email, username, app):
                 padding: 40px 30px;
                 text-align: center;
             }}
+            .header h1 {{
+                color: white;
+                font-size: 32px;
+                margin: 0;
+            }}
             .content {{
                 padding: 40px 30px;
                 color: #fff;
+            }}
+            .features {{
+                background: rgba(255,255,255,0.05);
+                border-radius: 16px;
+                padding: 20px;
+                margin: 20px 0;
             }}
         </style>
     </head>
@@ -135,7 +148,11 @@ def send_welcome_email(user_email, username, app):
             </div>
             <div class="content">
                 <p>Ваш email успешно подтверждён.</p>
-                <p>Теперь вы можете отслеживать все самолёты мира в реальном времени!</p>
+                <div class="features">
+                    <p>✨ Отслеживайте все самолёты мира</p>
+                    <p>✨ Обновление каждые 5 секунд</p>
+                    <p>✨ Детальная информация о рейсах</p>
+                </div>
             </div>
         </div>
     </body>
@@ -143,7 +160,3 @@ def send_welcome_email(user_email, username, app):
     """
     
     Thread(target=send_async_email, args=(app, msg)).start()
-
-def init_mail(app):
-    """Инициализация почты"""
-    mail.init_app(app)
