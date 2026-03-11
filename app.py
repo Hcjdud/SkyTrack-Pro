@@ -3,7 +3,7 @@
 
 """
 SkyTrack Pro - Главный файл приложения
-Профессиональный трекер самолётов с Google Maps
+Профессиональный трекер самолётов с картой
 """
 
 import os
@@ -44,9 +44,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Проверка конфигурации
-if not Config.validate_config():
-    print("⚠️  Внимание: Не все переменные окружения установлены!")
-    print("⚠️  Приложение может работать некорректно")
+Config.validate_config()
 
 # Инициализация расширений
 CORS(app, supports_credentials=True)  # Включаем CORS для всех маршрутов
@@ -90,11 +88,10 @@ with app.app_context():
 @app.route('/')
 @login_required
 def index():
-    """Главная страница с Google Maps (только для авторизованных)"""
+    """Главная страница с картой (только для авторизованных)"""
     try:
         return render_template('index.html', 
                              username=current_user.username,
-                             google_maps_api_key=Config.GOOGLE_MAPS_API_KEY,
                              update_interval=Config.FLIGHT_UPDATE_INTERVAL)
     except Exception as e:
         print(f"❌ Ошибка загрузки главной страницы: {e}")
@@ -139,6 +136,102 @@ def get_flight(icao24):
         print(f"❌ Ошибка получения деталей рейса: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/user/preferences', methods=['GET', 'POST'])
+@login_required
+def user_preferences():
+    """Управление настройками пользователя"""
+    try:
+        if request.method == 'GET':
+            return jsonify({
+                'success': True,
+                'show_trails': current_user.show_trails,
+                'map_style': current_user.map_style,
+                'username': current_user.username,
+                'email': current_user.email,
+                'verified': current_user.is_verified
+            })
+        
+        # POST запрос - обновление настроек
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Нет данных'}), 400
+            
+        if 'show_trails' in data:
+            current_user.show_trails = bool(data['show_trails'])
+        if 'map_style' in data:
+            current_user.map_style = str(data['map_style'])
+        
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Ошибка обновления настроек: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/favorites', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def favorites():
+    """Избранные самолёты пользователя"""
+    try:
+        if request.method == 'GET':
+            from models import FavoriteAircraft
+            favs = FavoriteAircraft.query.filter_by(user_id=current_user.id).all()
+            return jsonify({
+                'success': True,
+                'favorites': [{
+                    'icao24': f.icao24,
+                    'callsign': f.callsign,
+                    'notes': f.notes,
+                    'created_at': f.created_at.isoformat() if f.created_at else None
+                } for f in favs]
+            })
+        
+        elif request.method == 'POST':
+            from models import FavoriteAircraft
+            data = request.get_json()
+            if not data or 'icao24' not in data:
+                return jsonify({'success': False, 'error': 'Не указан ICAO код'}), 400
+            
+            # Проверяем, нет ли уже в избранном
+            existing = FavoriteAircraft.query.filter_by(
+                user_id=current_user.id,
+                icao24=data['icao24']
+            ).first()
+            
+            if not existing:
+                fav = FavoriteAircraft(
+                    user_id=current_user.id,
+                    icao24=data['icao24'],
+                    callsign=data.get('callsign', ''),
+                    notes=data.get('notes', '')
+                )
+                db.session.add(fav)
+                db.session.commit()
+                return jsonify({'success': True, 'message': 'Добавлено в избранное'})
+            else:
+                return jsonify({'success': False, 'error': 'Уже в избранном'}), 400
+        
+        elif request.method == 'DELETE':
+            from models import FavoriteAircraft
+            data = request.get_json()
+            if not data or 'icao24' not in data:
+                return jsonify({'success': False, 'error': 'Не указан ICAO код'}), 400
+                
+            deleted = FavoriteAircraft.query.filter_by(
+                user_id=current_user.id,
+                icao24=data['icao24']
+            ).delete()
+            db.session.commit()
+            
+            if deleted:
+                return jsonify({'success': True, 'message': 'Удалено из избранного'})
+            else:
+                return jsonify({'success': False, 'error': 'Не найдено в избранном'}), 404
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Ошибка работы с избранным: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/stats')
 @login_required
 def get_stats():
@@ -171,6 +264,43 @@ def get_stats():
         print(f"❌ Ошибка получения статистики: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/test-email')
+def test_email():
+    """Тестовый маршрут для проверки отправки почты"""
+    from email_service import send_verification_email
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info("=" * 50)
+    logger.info("🔍 ТЕСТОВЫЙ ЗАПРОС НА ОТПРАВКУ ПОЧТЫ")
+    logger.info(f"MAIL_USERNAME: {app.config.get('MAIL_USERNAME')}")
+    logger.info(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}:{app.config.get('MAIL_PORT')}")
+    logger.info("=" * 50)
+    
+    test_email = app.config.get('MAIL_USERNAME')  # Отправляем на тот же ящик
+    test_code = "12345"
+    
+    try:
+        send_verification_email(test_email, test_code, app)
+        return jsonify({
+            'success': True,
+            'message': 'Тестовое письмо отправляется',
+            'check_logs': 'Проверьте логи Render для подробностей',
+            'config': {
+                'MAIL_SERVER': app.config.get('MAIL_SERVER'),
+                'MAIL_PORT': app.config.get('MAIL_PORT'),
+                'MAIL_USERNAME': app.config.get('MAIL_USERNAME'),
+                'MAIL_USE_SSL': app.config.get('MAIL_USE_SSL')
+            }
+        })
+    except Exception as e:
+        logger.error(f"❌ Ошибка тестовой отправки: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'error_type': type(e).__name__
+        }), 500
+
 @app.route('/health')
 def health():
     """Endpoint для проверки работоспособности приложения"""
@@ -194,15 +324,18 @@ def health():
 
 @app.errorhandler(404)
 def not_found_error(error):
+    """Обработчик ошибки 404"""
     return jsonify({'success': False, 'error': 'Страница не найдена'}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
+    """Обработчик ошибки 500"""
     db.session.rollback()
     return jsonify({'success': False, 'error': 'Внутренняя ошибка сервера'}), 500
 
 @app.errorhandler(401)
 def unauthorized_error(error):
+    """Обработчик ошибки 401 (не авторизован)"""
     return jsonify({'success': False, 'error': 'Требуется авторизация'}), 401
 
 if __name__ == '__main__':
@@ -218,9 +351,14 @@ if __name__ == '__main__':
     ║   🔑 OpenSky: {'✅' if Config.OPENSKY_CLIENT_ID else '❌'}                   ║
     ║   📧 Email: {'✅' if Config.MAIL_USERNAME else '❌'}                    ║
     ║   🗄️  База: {'✅' if Config.SQLALCHEMY_DATABASE_URI else '❌'}           ║
-    ║   🗺️  Google Maps: {'✅' if Config.GOOGLE_MAPS_API_KEY else '❌'}        ║
+    ║   🔧 Werkzeug: {werkzeug.__version__}                             ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
     """)
     
-    app.run(host='0.0.0.0', port=port, debug=Config.DEBUG, threaded=True)
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=Config.DEBUG,
+        threaded=True
+    )
