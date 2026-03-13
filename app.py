@@ -3,7 +3,7 @@
 
 """
 SkyTrack Pro - Главный файл приложения
-Профессиональный трекер самолётов с картой
+Профессиональный трекер самолётов с Google Maps
 """
 
 import os
@@ -44,7 +44,9 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Проверка конфигурации
-Config.validate_config()
+if not Config.validate_config():
+    print("⚠️  Внимание: Не все переменные окружения установлены!")
+    print("⚠️  Приложение может работать некорректно")
 
 # Инициализация расширений
 CORS(app, supports_credentials=True)  # Включаем CORS для всех маршрутов
@@ -88,10 +90,11 @@ with app.app_context():
 @app.route('/')
 @login_required
 def index():
-    """Главная страница с картой (только для авторизованных)"""
+    """Главная страница с Google Maps"""
     try:
         return render_template('index.html', 
                              username=current_user.username,
+                             google_maps_api_key=Config.GOOGLE_MAPS_API_KEY,
                              update_interval=Config.FLIGHT_UPDATE_INTERVAL)
     except Exception as e:
         print(f"❌ Ошибка загрузки главной страницы: {e}")
@@ -250,12 +253,21 @@ def get_stats():
             # Уникальные страны
             countries = set(f.get('country') for f in flights if f.get('country'))
             
+            # Средняя высота и скорость
+            altitudes = [f.get('altitude', 0) for f in flights if f.get('altitude')]
+            speeds = [f.get('velocity', 0) for f in flights if f.get('velocity')]
+            
+            avg_altitude = sum(altitudes) / len(altitudes) if altitudes else 0
+            avg_speed = sum(speeds) / len(speeds) if speeds else 0
+            
             return jsonify({
                 'success': True,
                 'total': total,
                 'in_air': in_air,
                 'on_ground': on_ground,
                 'countries': len(countries),
+                'avg_altitude': round(avg_altitude),
+                'avg_speed': round(avg_speed),
                 'timestamp': data.get('time', int(datetime.now().timestamp()))
             })
         
@@ -263,6 +275,31 @@ def get_stats():
     except Exception as e:
         print(f"❌ Ошибка получения статистики: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/health')
+def health():
+    """Endpoint для проверки работоспособности приложения"""
+    try:
+        # Проверка подключения к базе данных
+        db_status = 'connected' if db.engine else 'disconnected'
+        
+        # Проверка OpenSky API
+        opensky_status = 'configured' if Config.OPENSKY_CLIENT_ID else 'not configured'
+        
+        return jsonify({
+            'status': 'healthy',
+            'database': db_status,
+            'opensky': opensky_status,
+            'timestamp': datetime.utcnow().isoformat(),
+            'environment': 'production' if not Config.DEBUG else 'development',
+            'werkzeug_version': werkzeug.__version__
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
 
 @app.route('/test-email')
 def test_email():
@@ -301,27 +338,6 @@ def test_email():
             'error_type': type(e).__name__
         }), 500
 
-@app.route('/health')
-def health():
-    """Endpoint для проверки работоспособности приложения"""
-    try:
-        db_status = 'connected' if db.engine else 'disconnected'
-        opensky_status = 'configured' if Config.OPENSKY_CLIENT_ID else 'not configured'
-        
-        return jsonify({
-            'status': 'healthy',
-            'database': db_status,
-            'opensky': opensky_status,
-            'timestamp': datetime.utcnow().isoformat(),
-            'environment': 'production' if not Config.DEBUG else 'development'
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'unhealthy',
-            'error': str(e),
-            'timestamp': datetime.utcnow().isoformat()
-        }), 500
-
 @app.errorhandler(404)
 def not_found_error(error):
     """Обработчик ошибки 404"""
@@ -339,6 +355,7 @@ def unauthorized_error(error):
     return jsonify({'success': False, 'error': 'Требуется авторизация'}), 401
 
 if __name__ == '__main__':
+    # Запуск приложения в режиме разработки
     port = int(os.environ.get('PORT', 5000))
     
     print(f"""
@@ -351,6 +368,7 @@ if __name__ == '__main__':
     ║   🔑 OpenSky: {'✅' if Config.OPENSKY_CLIENT_ID else '❌'}                   ║
     ║   📧 Email: {'✅' if Config.MAIL_USERNAME else '❌'}                    ║
     ║   🗄️  База: {'✅' if Config.SQLALCHEMY_DATABASE_URI else '❌'}           ║
+    ║   🗺️  Google Maps: {'✅' if Config.GOOGLE_MAPS_API_KEY else '❌'}        ║
     ║   🔧 Werkzeug: {werkzeug.__version__}                             ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
@@ -361,4 +379,4 @@ if __name__ == '__main__':
         port=port,
         debug=Config.DEBUG,
         threaded=True
-)
+    )
